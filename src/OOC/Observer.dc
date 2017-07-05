@@ -1,0 +1,16 @@
+#include <stdio.h>
+
+/*
+ Observer ctor {
+	struct Observer * self = super_ctor(Observer(), _self, app);
+
+	return self;
+}
+
+ Observer dtor {
+casts
+	return super_dtor(Observer(), self);
+}
+*/
+
+%init

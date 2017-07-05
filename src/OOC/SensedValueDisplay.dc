@@ -1,0 +1,14 @@
+#include <stdio.h>
+
+% SensedValueDisplay ctor {
+	struct SensedValueDisplay * self = super_ctor(SensedValueDisplay(), _self, app);
+	
+	return self;
+}
+
+% SensedValueDisplay update {
+%casts
+	printf("updated: %d\n",value);
+}
+
+%init
