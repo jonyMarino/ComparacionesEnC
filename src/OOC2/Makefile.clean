@@ -1,0 +1,38 @@
+#
+##############################
+# OOC Generic Clean makefile
+# -----
+# Object Oriented C Library
+#
+# Author: Laurent Deniau, Laurent.Deniau@cern.ch
+#
+# $Id: Makefile.clean,v 1.2 2005/01/19 14:04:40 oachim Exp $
+#
+# For more information, please see the paper:
+# http://cern.ch/Laurent.Deniau/html/ooc/ooc.html
+#
+##############################
+#
+
+.EXPORT_ALL_VARIABLES:
+
+#
+# CLEAN
+#
+
+clean:
+	$(RM) -f `$(FIND) \( -name '.*~' -o -name '*~' -o -name '#*#' \
+                             -o -name '.#*' -o -name '*.lo' -o -name '*.log' \
+                             -o -size 0 \) -print`
+
+cleanobj:
+	$(RM) -f `$(FIND) -name '*.o'`
+
+cleandep:
+	$(RM) -f `$(FIND) -name '*.d'`
+
+cleancpp:
+	$(RM) -f `$(FIND) -name '*.i'`
+
+cleanbak:
+	$(RM) -f `$(FIND) -name '*.bak'`

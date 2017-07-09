@@ -1,0 +1,225 @@
+#
+##############################
+# OOC Generic Library makefile
+# -----
+# Object Oriented C Library
+#
+# Author: Laurent Deniau, Laurent.Deniau@cern.ch
+#
+# $Id: Makefile.lib,v 1.21 2005/12/14 18:35:05 ldeniau Exp $
+#
+# For more information, please see the paper:
+# http://cern.ch/Laurent.Deniau/html/ooc/ooc.html
+#
+##############################
+#
+
+.EXPORT_ALL_VARIABLES:
+
+#
+# LIB PATH
+#
+
+LIBPATH = $(TOPDIR)
+
+#
+# LIB FILES
+#
+
+LIB_A      = lib$(TARGET)$(LIB_EX).a  
+LIB_SO     = lib$(TARGET)$(LIB_EX).$(LIBEXT)
+LIB_SO_V   = $(LIB_SO).$(MAJOR)
+LIB_SO_V_V = $(LIB_SO_V).$(MINOR)
+
+LIB_EX = `$(TOPDIR)/utils/getlib -t LIB_EX ./ooc/config_$(MODULE).h`
+LIB_AR = `$(TOPDIR)/utils/getlib -t LIB_AR ./ooc/config_$(MODULE).h`
+LIB_DL = `$(TOPDIR)/utils/getlib -t LIB_DL ./ooc/config_$(MODULE).h`
+
+#
+# FILE LISTS
+#
+
+INIT    = init_$(MODULE)
+F_INIT  = ooc/lib/$(INIT)
+
+HDRLIST = $(shell $(FIND) -name '*.h' ! -path './testsuite/*' -print)
+INSLIST = $(shell $(FIND) -name '*.h' ! -path './testsuite/*' ! -path '.*/lib/*' -print)
+SRCLIST = $(patsubst ./$(F_INIT).c,,$(shell $(FIND) -name '*.c' ! -path './testsuite/*' -print))
+DEPLIST = $(SRCLIST:.c=.d)
+OBJLIST = $(SRCLIST:.c=.o)
+LIBLIST = $(OBJLIST) $(F_INIT).o
+
+#
+# LIBS
+#
+
+libs:   lib.a lib.so
+
+lib.a:  dep init $(LIBLIST) getlib
+	@echo 'creating/updating archive' $(LIB_A)
+	@$(AR) $(ARFLAGS) $(LIBPATH)/$(LIB_A) $(LIBLIST) $(LIB_AR)
+
+lib.so: dep init $(LIBLIST) getlib
+	@echo 'creating/updating shared library' $(LIB_SO_V_V)
+	@$(LD) $(LDFLAGS) $(LIBLIST) -o $(LIBPATH)/$(LIB_SO_V_V) $(LIB_DL)
+
+#
+# INIT
+#
+
+init: $(F_INIT).o
+
+$(F_INIT).o: $(F_INIT).c
+
+$(F_INIT).c: $(OBJLIST)
+	@classes=`							     \
+	   $(NM) -P -g $(OBJLIST) | $(CUT) -d' ' -f 1  |		     \
+	   $(GREP) -E "ooc_[[:upper:]][[:alnum:]]+_$$" |		     \
+	   $(SED) -e 's/^ooc_//gp' | $(SED) -e 's/_$$//gp' | $(SORT) -u |    \
+	   $(GREP) -v -e "^Object$$" -e "^Class$$" -e "^MetaClass$$"         \
+                      -e "^Protocol$$"`;                                     \
+        echo '/*'                                     >  $(F_INIT).c;	     \
+	echo ' * -----------------------------'       >> $(F_INIT).c;	     \
+	echo ' * Generated Init implementation'       >> $(F_INIT).c;	     \
+	echo ' * -----------------------------'       >> $(F_INIT).c;	     \
+	echo ' */'                                    >> $(F_INIT).c;	     \
+	echo ''                                       >> $(F_INIT).c;	     \
+	echo '#include <ooc/Object.h>'                >> $(F_INIT).c;	     \
+	echo '#include <ooc/$(INIT).h>'               >> $(F_INIT).c;	     \
+	echo ''                                       >> $(F_INIT).c;	     \
+	for class in $$classes; do					     \
+	  echo "extern Class ooc_classDesc($$class);" >> $(F_INIT).c;	     \
+	done;								     \
+	echo ''                                       >> $(F_INIT).c;	     \
+	echo 'void ooc_$(INIT)()'                     >> $(F_INIT).c;	     \
+	echo '{'                                      >> $(F_INIT).c;	     \
+	for class in $$classes; do					     \
+	  echo "  ooc_classInitialize($$class);"      >> $(F_INIT).c;	     \
+	done;								     \
+	echo '}'                                      >> $(F_INIT).c
+
+#
+# CLASSES
+#
+
+classlist: $(OBJLIST)
+	@$(NM) -P -g $(OBJLIST) | $(CUT) -d' ' -f 1 | \
+	$(GREP) -E "ooc_[[:upper:]][[:alnum:]]+_$$"  | \
+	$(SED) 's/^ooc_//gp' | $(SED) 's/_$$//gp'   | \
+	$(SORT) -u
+
+classnum: $(OBJLIST)
+	@echo "Number of Classes" = \
+	`$(NM) -P -g $(OBJLIST) | $(CUT) -d' ' -f 1 | \
+	 $(GREP) -E "ooc_[[:upper:]][[:alnum:]]+_$$" | \
+	 $(SORT) -u | $(WC) -l`
+
+#
+# INSTALL
+#
+
+install: libs install_lib install_include
+
+install_lib: install_lib_shared install_lib_static
+
+install_lib_shared: lib.so
+	@echo '** install shared library'; \
+	$(INSTALL) -d $(libdir); \
+	$(INSTALL) -m 755 $(LIBPATH)/$(LIB_SO_V_V) $(libdir)/$(LIB_SO_V_V); \
+	$(LN) $(libdir)/$(LIB_SO_V_V) $(libdir)/$(LIB_SO_V); \
+	$(LN) $(libdir)/$(LIB_SO_V)   $(libdir)/$(LIB_SO)
+
+install_lib_static: lib.a
+	@echo '** install static library'; \
+	$(INSTALL) -d $(libdir); \
+	$(INSTALL) -m 644 $(LIBPATH)/$(LIB_A) $(libdir)/$(LIB_A)
+
+install_include:
+	@echo '** install headers'; \
+	$(INSTALL) -d $(includedir); \
+	for header in $(INSLIST); do \
+		$(INSTALL) -d $(includedir)/`dirname $$header`; \
+		$(INSTALL) -m 644 $$header $(includedir)/$$header; \
+	done
+
+#
+# UNINSTALL
+#
+
+uninstall: uninstall_include uninstall_lib
+
+uninstall_include:
+	@echo '** uninstall headers'; \
+	if [ -d $(includedir) ]; then \
+		for header in $(INSLIST); do \
+			$(RM) -f $(includedir)/$$header; \
+		done; \
+		for dir in `$(FIND) $(includedir) -type d -depth`; do \
+			if [ -z "`$(FIND) $$dir -mindepth 1`" ]; then \
+				$(RM) -rf $$dir; \
+			fi; \
+		done; \
+	fi
+
+uninstall_lib: uninstall_lib_shared uninstall_lib_static
+
+uninstall_lib_shared:
+	@echo '** uninstall shared lib'; \
+	$(RM) -f $(libdir)/$(LIB_SO); \
+	$(RM) -f $(libdir)/$(LIB_SO_V); \
+	$(RM) -f $(libdir)/$(LIB_SO_V_V); \
+	if [ -d $(libdir) ]; then \
+		if [ -z "`$(FIND) $(libdir) -mindepth 1`" ]; then \
+			$(RM) -rf $(libdir); \
+		fi; \
+	fi
+
+uninstall_lib_static:
+	@echo '** uninstall static lib'; \
+	$(RM) -f $(libdir)/$(LIB_A); \
+	if [ -d $(libdir) ]; then \
+		if [ -z "`$(FIND) $(libdir) -mindepth 1`" ]; then \
+			$(RM) -rf $(libdir); \
+		fi; \
+	fi
+
+#
+# CLEAN
+#
+
+include $(TOPDIR)/Makefile.clean
+
+cleaninit:
+	$(RM) -f $(F_INIT).c
+
+cleanlib: cleaninit
+	$(RM) -f $(LIBPATH)/$(LIB_A) $(LIBPATH)/$(LIB_SO_V_V)
+
+cleanall: clean cleanlib cleanobj cleandep cleancpp
+
+#
+# UTILS
+#
+
+getlib:
+	$(MAKE) -C $(TOPDIR)/utils getlib
+
+#
+# BUILD DEPS
+#
+
+dep: $(DEPLIST)
+
+%.d:%.c
+	@echo 'creating dependencies of $<'
+	@$(CC) -MM $(CPPFLAGS) $(CFLAGS) $< > $@~
+	@$(SED) 's,\($(*F)\)\.o[ :]*,$(*D)/\1.o $@: ,g' < $@~ > $@
+	@$(RM) -f $@~	
+
+CMMDCLEAN = $(findstring clean,$(MAKECMDGOALS))
+CMMDPRINT = $(findstring print,$(MAKECMDGOALS))
+CMMDUNINS = $(findstring uninstall,$(MAKECMDGOALS))
+
+ifeq ($(CMMDCLEAN)$(CMMDPRINT)$(CMMDUNINS),)
+-include $(SRCLIST:.c=.d)
+endif
