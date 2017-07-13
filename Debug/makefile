@@ -2,7 +2,7 @@
 # Automatically-generated file. Do not edit!
 ################################################################################
 # Possibles: SOOPC, LDOOPC, OOCS, OOC
-SMELL = OOC
+SMELL = OOC2
 
 -include ../makefile.init
 
@@ -33,7 +33,7 @@ all: ComparacionesEnC
 ComparacionesEnC: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: GCC C Linker'
-	gcc  -o "ComparacionesEnC" $(OBJS) $(USER_OBJS) $(LIBS)
+	gcc  -l../src/OOC2/libooc -o "ComparacionesEnC" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 

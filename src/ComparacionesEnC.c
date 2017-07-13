@@ -15,8 +15,10 @@
 #define OOC 1
 #define LDOOPC 2
 #define OOCS 3
+#define OOC2 4
 
-#define SMELL OOC
+
+#define SMELL OOC2
 
 #if SMELL == LDOOPC
 #include "LDOOPC/SensedValueDisplay.h"
@@ -27,6 +29,8 @@
 #include "OOCS/SensedValueDisplay_p.h"
 #elif SMELL == OOC
 #include "OOC/SensedValueDisplay.h"
+#elif SMELL == OOC2
+#include "OOC2/SensedValueDisplay.h"
 #endif
 
 
@@ -52,6 +56,12 @@ int main(void) {
 
 	void *display = new( SensedValueDisplay() );
 	update(display,SMELL);
+	delete(display);
+
+#elif SMELL == OOC2
+
+	SensedValueDisplay display = new( SensedValueDisplay );
+	display->isa->update(display,SMELL);
 	delete(display);
 
 #endif
